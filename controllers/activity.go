@@ -8,6 +8,27 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+func getActivityRequests(ctx *fasthttp.RequestCtx) (string, string) {
+	req := services.ExtractRequests(ctx)
+
+	var title, email string
+
+	if req["title"] == nil {
+		ctx.SetStatusCode(400)
+		services.SendJSONResponse(ctx, nil, "Bad Request", "title cannot be null")
+		return "", ""
+	}
+	title = req["title"].(string)
+
+	if req["email"] == nil {
+		email = ""
+	} else {
+		email = req["email"].(string)
+	}
+
+	return title, email
+}
+
 func findOneActivity(ctx *fasthttp.RequestCtx) (models.Activity, interface{}) {
 	id := ctx.UserValue("id")
 	activity := models.Activity{}
@@ -33,30 +54,17 @@ func GetOneActivity(ctx *fasthttp.RequestCtx) {
 }
 
 func CreateActivity(ctx *fasthttp.RequestCtx) {
-	req := services.ExtractRequests(ctx)
+	title, email := getActivityRequests(ctx)
 
-	var title, email string
-
-	if req["title"] == nil {
-		ctx.SetStatusCode(400)
-		services.SendJSONResponse(ctx, nil, "Bad Request", "title cannot be null")
-		return
+	if title != "" && email != "" {
+		a := models.Activity{
+			Title: title,
+			Email: email,
+		}
+	
+		database.GetDB().Create(&a)
+		services.SendJSONResponse(ctx, a, "", "")	
 	}
-	title = req["title"].(string)
-
-	if req["email"] == nil {
-		email = ""
-	} else {
-		email = req["email"].(string)
-	}
-
-	a := models.Activity{
-		Title: title,
-		Email: email,
-	}
-
-	database.GetDB().Create(&a)
-	services.SendJSONResponse(ctx, a, "", "")
 }
 
 func DeleteActivity(ctx *fasthttp.RequestCtx) {
@@ -76,27 +84,14 @@ func UpdateActivity(ctx *fasthttp.RequestCtx) {
 		ctx.SetStatusCode(404)
 		services.SendJSONResponse(ctx, nil, "Not Found", "Activity with ID " + id.(string) + " Not Found")
 	} else {
-		req := services.ExtractRequests(ctx)
+		title, email := getActivityRequests(ctx)
 
-		var title, email string
+		if title != "" && email != "" {
+			activity.Title = title
+			activity.Email = email
 
-		if req["title"] == nil {
-			ctx.SetStatusCode(400)
-			services.SendJSONResponse(ctx, nil, "Bad Request", "title cannot be null")
-			return
+			database.GetDB().Updates(&activity)
+			services.SendJSONResponse(ctx, activity, "", "")
 		}
-		title = req["title"].(string)
-
-		if req["email"] == nil {
-			email = ""
-		} else {
-			email = req["email"].(string)
-		}
-
-		activity.Title = title
-		activity.Email = email
-
-		database.GetDB().Updates(&activity)
-		services.SendJSONResponse(ctx, activity, "", "")
 	}
 }
