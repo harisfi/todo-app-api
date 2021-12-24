@@ -3,7 +3,7 @@ package models
 type Activity struct {
     IDModel
     Email       string      `gorm:"not null;type:varchar(64)" json:"email"`
-    Title       uint        `gorm:"not null;type:varchar(16)" json:"title"`
+    Title       string      `gorm:"not null;type:varchar(16)" json:"title"`
     TimestampModel
 }
 
