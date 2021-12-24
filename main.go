@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"todo-app-api/database"
 	"todo-app-api/routers"
 
 	"github.com/joho/godotenv"
@@ -9,12 +10,13 @@ import (
 )
 
 func main() {
-	r := routers.SetupRouter()
 	e := godotenv.Load()
 	if e != nil {
 		log.Println(e)
 	}
 
+	database.SetupDB()
+	r := routers.SetupRouter()
 	// run server
 	log.Fatal(fasthttp.ListenAndServe(":3030", r))
 }
