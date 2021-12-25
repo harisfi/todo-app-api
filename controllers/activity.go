@@ -63,7 +63,8 @@ func CreateActivity(ctx *fasthttp.RequestCtx) {
 		}
 	
 		database.GetDB().Create(&a)
-		services.SendJSONResponse(ctx, a, "", "")	
+		services.SendJSONResponse(ctx, a, "", "")
+		ctx.SetStatusCode(201)
 	}
 }
 
