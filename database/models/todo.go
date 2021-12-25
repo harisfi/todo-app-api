@@ -6,7 +6,7 @@ type Todo struct {
 	Title				string		`gorm:"not null;type:varchar(16)" json:"title"`
 	IsActive			bool		`gorm:"not null" json:"is_active"`
 	Priority			string		`gorm:"not null;type:varchar(16)" json:"priority"`
-	Activity			Activity	`gorm:"foreignKey:ActivityGroupId"`
+	Activity			Activity	`gorm:"foreignKey:ActivityGroupId" json:"-"`
 	TimestampModel
 }
 
