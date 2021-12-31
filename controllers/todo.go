@@ -78,7 +78,7 @@ func CreateTodo(ctx *fasthttp.RequestCtx) {
 		database.GetDB().Find(&a, activityGroupId)
 		if a.ID == 0 {
 			ctx.SetStatusCode(404)
-			services.SendJSONResponse(ctx, nil, "Not Found", fmt.Sprintf("Activity with ID %d Not Found", activityGroupId))
+			services.SendJSONResponse(ctx, nil, "Not Found", fmt.Sprintf("Activity with activity_group_id %d Not Found", activityGroupId))
 		} else {
 			t := models.Todo{
 				Title: title,

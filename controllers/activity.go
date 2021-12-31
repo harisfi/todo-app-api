@@ -56,7 +56,7 @@ func GetOneActivity(ctx *fasthttp.RequestCtx) {
 func CreateActivity(ctx *fasthttp.RequestCtx) {
 	title, email := getActivityRequests(ctx)
 
-	if title != "" && email != "" {
+	if title != "" {
 		a := models.Activity{
 			Title: title,
 			Email: email,
@@ -87,7 +87,7 @@ func UpdateActivity(ctx *fasthttp.RequestCtx) {
 	} else {
 		title, email := getActivityRequests(ctx)
 
-		if title != "" && email != "" {
+		if title != "" {
 			activity.Title = title
 			activity.Email = email
 

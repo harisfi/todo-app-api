@@ -2,8 +2,8 @@ package models
 
 type Activity struct {
     IDModel
-    Email       string      `gorm:"not null;type:varchar(64)" json:"email"`
-    Title       string      `gorm:"not null;type:varchar(16)" json:"title"`
+    Email       string      `gorm:"type:varchar(64)" json:"email"`
+    Title       string      `gorm:"not null;type:varchar(255)" json:"title"`
     TimestampModel
 }
 
