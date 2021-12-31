@@ -18,5 +18,6 @@ func main() {
 	database.SetupDB()
 	r := routers.SetupRouter()
 	// run server
+	log.Println("app running on port 3030")
 	log.Fatal(fasthttp.ListenAndServe(":3030", r))
 }

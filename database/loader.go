@@ -2,6 +2,7 @@ package database
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"gorm.io/driver/mysql"
@@ -30,6 +31,8 @@ func SetupDB() {
 	})
 	if e != nil {
 		panic("failed to connect database")
+	} else {
+		log.Println("connected to database")
 	}
 	db = conn
 
