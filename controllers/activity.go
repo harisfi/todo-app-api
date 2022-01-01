@@ -61,7 +61,7 @@ func CreateActivity(ctx *fasthttp.RequestCtx) {
 			Title: title,
 			Email: email,
 		}
-	
+
 		database.GetDB().Create(&a)
 		services.SendJSONResponse(ctx, a, "", "")
 		ctx.SetStatusCode(201)
@@ -85,11 +85,10 @@ func UpdateActivity(ctx *fasthttp.RequestCtx) {
 		ctx.SetStatusCode(404)
 		services.SendJSONResponse(ctx, nil, "Not Found", "Activity with ID " + id.(string) + " Not Found")
 	} else {
-		title, email := getActivityRequests(ctx)
+		title, _ := getActivityRequests(ctx)
 
 		if title != "" {
 			activity.Title = title
-			activity.Email = email
 
 			database.GetDB().Updates(&activity)
 			services.SendJSONResponse(ctx, activity, "", "")
