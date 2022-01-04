@@ -29,8 +29,8 @@ func getTodoRequests(c *fiber.Ctx) (string, uint, string, bool) {
 	return rt.Title, rt.ActivityGroupId, rt.Priority, rt.IsActive
 }
 
-func findOneTodo(c *fiber.Ctx) (models.Todo, interface{}) {
-	id := c.Query("id")
+func findOneTodo(c *fiber.Ctx) (models.Todo, string) {
+	id := c.Params("id")
 	todo := models.Todo{}
 
 	database.GetDB().Find(&todo, id)
@@ -58,7 +58,7 @@ func GetOneTodo(c *fiber.Ctx) error {
 	if todo.ID == 0 {
 		return c.Status(fiber.StatusNotFound).JSON(&baseOutput{
 			Status: "Not Found",
-			Message: "Todo with ID " + id.(string) + " Not Found",
+			Message: "Todo with ID " + id + " Not Found",
 			Data: map[int]int{},
 		})
 	} else {
@@ -119,7 +119,7 @@ func DeleteTodo(c *fiber.Ctx) error {
 	if todo.ID == 0 {
 		return c.Status(fiber.StatusNotFound).JSON(&baseOutput{
 			Status: "Not Found",
-			Message: "Todo with ID " + id.(string) + " Not Found",
+			Message: "Todo with ID " + id + " Not Found",
 			Data: map[int]int{},
 		})
 	} else {
@@ -137,7 +137,7 @@ func UpdateTodo(c *fiber.Ctx) error {
 	if todo.ID == 0 {
 		return c.Status(fiber.StatusNotFound).JSON(&baseOutput{
 			Status: "Not Found",
-			Message: "Todo with ID " + id.(string) + " Not Found",
+			Message: "Todo with ID " + id + " Not Found",
 			Data: map[int]int{},
 		})
 	} else {
