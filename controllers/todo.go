@@ -5,127 +5,159 @@ import (
 	"strconv"
 	"todo-app-api/database"
 	"todo-app-api/database/models"
-	"todo-app-api/services"
 
-	"github.com/valyala/fasthttp"
+	"github.com/gofiber/fiber/v2"
 )
 
-func getTodoRequests(ctx *fasthttp.RequestCtx) (string, uint, string) {
-	req := services.ExtractRequests(ctx)
-
-	var (
-		activityGroupId uint
-		title, priority string
-	)
-
-	if req["title"] == nil {
-		ctx.SetStatusCode(400)
-		services.SendJSONResponse(ctx, nil, "Bad Request", "title cannot be null")
-		return "", 0, ""
+func getTodoRequests(c *fiber.Ctx) (string, uint, string, bool) {
+	type reqTodo struct {
+		Title				string	`json:"title" form:"title"`
+		ActivityGroupId		uint	`json:"activity_group_id" form:"activity_group_id"`
+		Priority			string	`json:"priority" form:"priority"`
+		IsActive			bool	`json:"is_active" form:"is_active"`
 	}
-	title = req["title"].(string)
-
-	if req["activity_group_id"] == nil {
-		ctx.SetStatusCode(400)
-		services.SendJSONResponse(ctx, nil, "Bad Request", "activity_group_id cannot be null")
-		return "", 0, ""
-	}
-	activityGroupId = uint(req["activity_group_id"].(float64))
-
-	if req["priority"] == nil {
-		priority = "very-high"
-	} else {
-		priority = req["priority"].(string)
+	
+	rt := new(reqTodo)
+	if err := c.BodyParser(rt); err != nil {
+		return "", 0, "", true
 	}
 
-	return title, activityGroupId, priority
+	if rt.Priority == "" {
+		rt.Priority = "very-high"
+	}
+
+	return rt.Title, rt.ActivityGroupId, rt.Priority, rt.IsActive
 }
 
-func findOneTodo(ctx *fasthttp.RequestCtx) (models.Todo, interface{}) {
-	id := ctx.UserValue("id")
+func findOneTodo(c *fiber.Ctx) (models.Todo, interface{}) {
+	id := c.Query("id")
 	todo := models.Todo{}
 
 	database.GetDB().Find(&todo, id)
 	return todo, id
 }
 
-func GetAllTodo(ctx *fasthttp.RequestCtx) {
+func GetAllTodo(c *fiber.Ctx) error {
 	todoItems := []models.Todo{}
-	if activityGroupId := ctx.FormValue("activity_group_id"); activityGroupId != nil {
+	if activityGroupId := c.Query("activity_group_id"); activityGroupId != "" {
 		activityGroupIdx, _ := strconv.Atoi(string(activityGroupId))
 		database.GetDB().Find(&todoItems, models.Todo{ActivityGroupId: uint(activityGroupIdx)})
 	} else {
 		database.GetDB().Find(&todoItems)
 	}
-	services.SendJSONResponse(ctx, todoItems, "", "")
+
+	return c.JSON(&baseOutput{
+		Status: "Success",
+		Message: "Success",
+		Data: todoItems,
+	})
 }
 
-func GetOneTodo(ctx *fasthttp.RequestCtx) {
-	todo, id := findOneTodo(ctx)
+func GetOneTodo(c *fiber.Ctx) error {
+	todo, id := findOneTodo(c)
 	if todo.ID == 0 {
-		ctx.SetStatusCode(404)
-		services.SendJSONResponse(ctx, nil, "Not Found", "Todo with ID " + id.(string) + " Not Found")
+		return c.Status(fiber.StatusNotFound).JSON(&baseOutput{
+			Status: "Not Found",
+			Message: "Todo with ID " + id.(string) + " Not Found",
+			Data: map[int]int{},
+		})
 	} else {
-		services.SendJSONResponse(ctx, todo, "", "")
+		return c.JSON(&baseOutput{
+			Status: "Success",
+			Message: "Success",
+			Data: todo,
+		})
 	}
 }
 
-func CreateTodo(ctx *fasthttp.RequestCtx) {
-	title, activityGroupId, priority := getTodoRequests(ctx)
+func CreateTodo(c *fiber.Ctx) error {
+	title, activityGroupId, priority, _ := getTodoRequests(c)
 
-	if title != "" && activityGroupId != 0 && priority != "" {
-		a := models.Activity{}
-		database.GetDB().Find(&a, activityGroupId)
-		if a.ID == 0 {
-			ctx.SetStatusCode(404)
-			services.SendJSONResponse(ctx, nil, "Not Found", fmt.Sprintf("Activity with activity_group_id %d Not Found", activityGroupId))
-		} else {
-			t := models.Todo{
-				Title: title,
-				ActivityGroupId: activityGroupId,
-				Priority: priority,
-				IsActive: true,
-			}
+	if title == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(&baseOutput{
+			Status: "Bad Request",
+			Message: "title cannot be null",
+			Data: map[int]int{},
+		})
+	}
 
-			database.GetDB().Create(&t)
-			services.SendJSONResponse(ctx, t, "", "")
-			ctx.SetStatusCode(201)
+	if activityGroupId == 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(&baseOutput{
+			Status: "Bad Request",
+			Message: "activity_group_id cannot be null",
+			Data: map[int]int{},
+		})
+	}
+
+	a := models.Activity{}
+	database.GetDB().Find(&a, activityGroupId)
+	if a.ID == 0 {
+		return c.Status(fiber.StatusNotFound).JSON(&baseOutput{
+			Status: "Not Found",
+			Message: fmt.Sprintf("Activity with activity_group_id %d Not Found", activityGroupId),
+			Data: map[int]int{},
+		})
+	} else {
+		t := models.Todo{
+			Title: title,
+			ActivityGroupId: activityGroupId,
+			Priority: priority,
+			IsActive: true,
 		}
+
+		database.GetDB().Create(&t)
+		return c.Status(fiber.StatusCreated).JSON(&baseOutput{
+			Status: "Success",
+			Message: "Success",
+			Data: t,
+		})
 	}
 }
 
-func DeleteTodo(ctx *fasthttp.RequestCtx) {
-	todo, id := findOneTodo(ctx)
+func DeleteTodo(c *fiber.Ctx) error {
+	todo, id := findOneTodo(c)
 	if todo.ID == 0 {
-		ctx.SetStatusCode(404)
-		services.SendJSONResponse(ctx, nil, "Not Found", "Todo with ID " + id.(string) + " Not Found")
+		return c.Status(fiber.StatusNotFound).JSON(&baseOutput{
+			Status: "Not Found",
+			Message: "Todo with ID " + id.(string) + " Not Found",
+			Data: map[int]int{},
+		})
 	} else {
 		database.GetDB().Delete(&todo)
-		services.SendJSONResponse(ctx, nil, "", "")
+		return c.JSON(&baseOutput{
+			Status: "Success",
+			Message: "Success",
+			Data: map[int]int{},
+		})
 	}
 }
 
-func UpdateTodo(ctx *fasthttp.RequestCtx) {
-	todo, id := findOneTodo(ctx)
+func UpdateTodo(c *fiber.Ctx) error {
+	todo, id := findOneTodo(c)
 	if todo.ID == 0 {
-		ctx.SetStatusCode(404)
-		services.SendJSONResponse(ctx, nil, "Not Found", "Todo with ID " + id.(string) + " Not Found")
+		return c.Status(fiber.StatusNotFound).JSON(&baseOutput{
+			Status: "Not Found",
+			Message: "Todo with ID " + id.(string) + " Not Found",
+			Data: map[int]int{},
+		})
 	} else {
-		req := services.ExtractRequests(ctx)
+		title, _, priority, isActive := getTodoRequests(c)
 
-		if req["title"] != nil {
-			todo.Title = req["title"].(string)
+		if title != "" {
+			todo.Title = title
 		}
 
-		if req["is_active"] != nil {
-			todo.IsActive = req["is_active"].(bool)
-		}
+		todo.IsActive = isActive
 
-		if req["priority"] != nil {
-			todo.Priority = req["priority"].(string)
+		if priority != "" {
+			todo.Priority = priority
 		}
 
 		database.GetDB().Updates(&todo)
-		services.SendJSONResponse(ctx, todo, "", "")
+		return c.JSON(&baseOutput{
+			Status: "Success",
+			Message: "Success",
+			Data: todo,
+		})
 	}
 }

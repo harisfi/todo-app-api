@@ -3,58 +3,62 @@ package controllers
 import (
 	"todo-app-api/database"
 	"todo-app-api/database/models"
-	"todo-app-api/services"
 
-	"github.com/valyala/fasthttp"
+	"github.com/gofiber/fiber/v2"
 )
 
-func getActivityRequests(ctx *fasthttp.RequestCtx) (string, string) {
-	req := services.ExtractRequests(ctx)
+func getActivityRequests(c *fiber.Ctx) (string, string) {
+	type reqActivity struct {
+		Title	string	`json:"title" form:"title"`
+		Email	string	`json:"email" form:"email"`
+	}
 
-	var title, email string
-
-	if req["title"] == nil {
-		ctx.SetStatusCode(400)
-		services.SendJSONResponse(ctx, nil, "Bad Request", "title cannot be null")
+	ra := new(reqActivity)
+	if err := c.BodyParser(ra); err != nil {
 		return "", ""
 	}
-	title = req["title"].(string)
 
-	if req["email"] == nil {
-		email = ""
-	} else {
-		email = req["email"].(string)
-	}
-
-	return title, email
+	return ra.Title, ra.Email
 }
 
-func findOneActivity(ctx *fasthttp.RequestCtx) (models.Activity, interface{}) {
-	id := ctx.UserValue("id")
+func findOneActivity(c *fiber.Ctx) (models.Activity, string) {
+	id := c.Params("id")
 	activity := models.Activity{}
 
 	database.GetDB().Find(&activity, id)
 	return activity, id
 }
 
-func GetAllActivity(ctx *fasthttp.RequestCtx) {
+func GetAllActivity(c *fiber.Ctx) error {
 	activities := []models.Activity{}
 	database.GetDB().Find(&activities)
-	services.SendJSONResponse(ctx, activities, "", "")
+
+	return c.JSON(&baseOutput{
+		Status: "Success",
+		Message: "Success",
+		Data: activities,
+	})
 }
 
-func GetOneActivity(ctx *fasthttp.RequestCtx) {
-	activity, id := findOneActivity(ctx)
+func GetOneActivity(c *fiber.Ctx) error {
+	activity, id := findOneActivity(c)
 	if activity.ID == 0 {
-		ctx.SetStatusCode(404)
-		services.SendJSONResponse(ctx, nil, "Not Found", "Activity with ID " + id.(string) + " Not Found")
+		return c.Status(fiber.StatusNotFound).JSON(&baseOutput{
+			Status: "Not Found",
+			Message: "Activity with ID " + id + " Not Found",
+			Data: map[int]int{},
+		})
 	} else {
-		services.SendJSONResponse(ctx, activity, "", "")
+		return c.JSON(&baseOutput{
+			Status: "Success",
+			Message: "Success",
+			Data: activity,
+		})
 	}
 }
 
-func CreateActivity(ctx *fasthttp.RequestCtx) {
-	title, email := getActivityRequests(ctx)
+func CreateActivity(c *fiber.Ctx) error {
+	title, email := getActivityRequests(c)
 
 	if title != "" {
 		a := models.Activity{
@@ -63,35 +67,65 @@ func CreateActivity(ctx *fasthttp.RequestCtx) {
 		}
 
 		database.GetDB().Create(&a)
-		services.SendJSONResponse(ctx, a, "", "")
-		ctx.SetStatusCode(201)
+
+		return c.Status(fiber.StatusCreated).JSON(&baseOutput{
+			Status: "Success",
+			Message: "Success",
+			Data: a,
+		})
+	} else {
+		return c.Status(fiber.StatusBadRequest).JSON(&baseOutput{
+			Status: "Bad Request",
+			Message: "title cannot be null",
+			Data: map[int]int{},
+		})
 	}
 }
 
-func DeleteActivity(ctx *fasthttp.RequestCtx) {
-	activity, id := findOneActivity(ctx)
+func DeleteActivity(c *fiber.Ctx) error {
+	activity, id := findOneActivity(c)
 	if activity.ID == 0 {
-		ctx.SetStatusCode(404)
-		services.SendJSONResponse(ctx, nil, "Not Found", "Activity with ID " + id.(string) + " Not Found")
+		return c.Status(fiber.StatusNotFound).JSON(&baseOutput{
+			Status: "Not Found",
+			Message: "Activity with ID " + id + " Not Found",
+			Data: map[int]int{},
+		})
 	} else {
 		database.GetDB().Delete(&activity)
-		services.SendJSONResponse(ctx, nil, "", "")
+		return c.JSON(&baseOutput{
+			Status: "Success",
+			Message: "Success",
+			Data: map[int]int{},
+		})
 	}
 }
 
-func UpdateActivity(ctx *fasthttp.RequestCtx) {
-	activity, id := findOneActivity(ctx)
+func UpdateActivity(c *fiber.Ctx) error {
+	activity, id := findOneActivity(c)
 	if activity.ID == 0 {
-		ctx.SetStatusCode(404)
-		services.SendJSONResponse(ctx, nil, "Not Found", "Activity with ID " + id.(string) + " Not Found")
+		return c.Status(fiber.StatusNotFound).JSON(&baseOutput{
+			Status: "Not Found",
+			Message: "Activity with ID " + id + " Not Found",
+			Data: map[int]int{},
+		})
 	} else {
-		title, _ := getActivityRequests(ctx)
+		title, _ := getActivityRequests(c)
 
 		if title != "" {
 			activity.Title = title
 
 			database.GetDB().Updates(&activity)
-			services.SendJSONResponse(ctx, activity, "", "")
+			return c.JSON(&baseOutput{
+				Status: "Success",
+				Message: "Success",
+				Data: activity,
+			})
+		} else {
+			return c.Status(fiber.StatusBadRequest).JSON(&baseOutput{
+				Status: "Bad Request",
+				Message: "title cannot be null",
+				Data: map[int]int{},
+			})
 		}
 	}
 }

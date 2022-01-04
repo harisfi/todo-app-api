@@ -5,8 +5,8 @@ import (
 	"todo-app-api/database"
 	"todo-app-api/routers"
 
+	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
-	"github.com/valyala/fasthttp"
 )
 
 func main() {
@@ -16,8 +16,11 @@ func main() {
 	}
 
 	database.SetupDB()
-	r := routers.SetupRouter()
+
+	app := fiber.New(fiber.Config{
+		Prefork: true,
+	})
+	routers.SetupRouter(app)
 	// run server
-	log.Println("app running on port 3030")
-	log.Fatal(fasthttp.ListenAndServe(":3030", r))
+	log.Fatal(app.Listen(":3030"))
 }
