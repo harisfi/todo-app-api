@@ -25,7 +25,7 @@ func SetupDB() {
 
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 						dbUsername, dbPassword, dbHost, dbPort, dbName)
-	
+
 	conn, e := gorm.Open(mysql.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent),
 	})
@@ -37,6 +37,10 @@ func SetupDB() {
 	db = conn
 
 	RunMigrator(db)
+
+	sqlDb, _ := db.DB()
+	sqlDb.SetMaxIdleConns(4)
+	sqlDb.SetMaxOpenConns(100)
 }
 
 func GetDB() *gorm.DB {
