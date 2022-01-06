@@ -24,19 +24,29 @@ func getActivityRequests(c *fiber.Ctx) (string, string) {
 func findOneActivity(c *fiber.Ctx) (models.Activity, string) {
 	id := c.Params("id")
 	activity := models.Activity{}
+	if activityChanged {
+		database.GetDB().Find(&activity, id)
+	} else {
+		activity = activitiesCache[activity.ID]
+	}
 
-	database.GetDB().Find(&activity, id)
 	return activity, id
 }
 
+func fetchAllActivity() {
+	database.GetDB().Find(&activitiesCache)
+}
+
 func GetAllActivity(c *fiber.Ctx) error {
-	activities := []models.Activity{}
-	database.GetDB().Find(&activities)
+	if activityChanged {
+		fetchAllActivity()
+		activityChanged = false
+	}
 
 	return c.JSON(&baseOutput{
 		Status: "Success",
 		Message: "Success",
-		Data: activities,
+		Data: activitiesCache,
 	})
 }
 
@@ -67,6 +77,7 @@ func CreateActivity(c *fiber.Ctx) error {
 		}
 
 		database.GetDB().Create(&a)
+		activityChanged = true
 
 		return c.Status(fiber.StatusCreated).JSON(&baseOutput{
 			Status: "Success",
@@ -91,6 +102,7 @@ func DeleteActivity(c *fiber.Ctx) error {
 			Data: map[int]int{},
 		})
 	} else {
+		activityChanged = true
 		database.GetDB().Delete(&activity)
 		return c.JSON(&baseOutput{
 			Status: "Success",

@@ -32,18 +32,35 @@ func getTodoRequests(c *fiber.Ctx) (string, uint, string, bool) {
 func findOneTodo(c *fiber.Ctx) (models.Todo, string) {
 	id := c.Params("id")
 	todo := models.Todo{}
+	if todoItemChanged {
+		database.GetDB().Find(&todo, id)
+	} else {
+		todo = todoItemsCache[todo.ID]
+	}
 
-	database.GetDB().Find(&todo, id)
 	return todo, id
 }
 
+func fetchAllTodo() {
+	database.GetDB().Find(&todoItemsCache)
+}
+
 func GetAllTodo(c *fiber.Ctx) error {
+	if todoItemChanged {
+		fetchAllTodo()
+		todoItemChanged = false
+	}
+
 	todoItems := []models.Todo{}
 	if activityGroupId := c.Query("activity_group_id"); activityGroupId != "" {
 		activityGroupIdx, _ := strconv.Atoi(string(activityGroupId))
-		database.GetDB().Find(&todoItems, models.Todo{ActivityGroupId: uint(activityGroupIdx)})
+		for _, t := range todoItemsCache {
+			if int(t.ActivityGroupId) == activityGroupIdx {
+				todoItems = append(todoItems, t)
+			}
+		}
 	} else {
-		database.GetDB().Find(&todoItems)
+		todoItems = todoItemsCache
 	}
 
 	return c.JSON(&baseOutput{
@@ -106,6 +123,8 @@ func CreateTodo(c *fiber.Ctx) error {
 		}
 
 		database.GetDB().Create(&t)
+		todoItemChanged = true
+
 		return c.Status(fiber.StatusCreated).JSON(&baseOutput{
 			Status: "Success",
 			Message: "Success",
@@ -124,6 +143,7 @@ func DeleteTodo(c *fiber.Ctx) error {
 		})
 	} else {
 		database.GetDB().Delete(&todo)
+		todoItemChanged = true
 		return c.JSON(&baseOutput{
 			Status: "Success",
 			Message: "Success",
@@ -154,6 +174,7 @@ func UpdateTodo(c *fiber.Ctx) error {
 		}
 
 		database.GetDB().Updates(&todo)
+		todoItemChanged = true
 		return c.JSON(&baseOutput{
 			Status: "Success",
 			Message: "Success",
