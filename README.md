@@ -19,7 +19,12 @@
 
 3. Set your database configuration in .env files
 
-4. Run server
+4. Download and verify dependencies
+    ```bash
+    go get -d -v
+    ```
+
+5. Run server
     ```bash
     go run main.go
     ```
