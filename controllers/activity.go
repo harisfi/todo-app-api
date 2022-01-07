@@ -21,8 +21,7 @@ func getActivityRequests(c *fiber.Ctx) (string, string) {
 	return ra.Title, ra.Email
 }
 
-func findOneActivity(c *fiber.Ctx) (models.Activity, string) {
-	id := c.Params("id")
+func findOneActivity(id string) (models.Activity, string) {
 	activity := models.Activity{}
 	if activityChanged {
 		database.GetDB().Find(&activity, id)
@@ -51,7 +50,7 @@ func GetAllActivity(c *fiber.Ctx) error {
 }
 
 func GetOneActivity(c *fiber.Ctx) error {
-	activity, id := findOneActivity(c)
+	activity, id := findOneActivity(c.Params("id"))
 	if activity.ID == 0 {
 		return c.Status(fiber.StatusNotFound).JSON(&baseOutput{
 			Status: "Not Found",
@@ -94,7 +93,7 @@ func CreateActivity(c *fiber.Ctx) error {
 }
 
 func DeleteActivity(c *fiber.Ctx) error {
-	activity, id := findOneActivity(c)
+	activity, id := findOneActivity(c.Params("id"))
 	if activity.ID == 0 {
 		return c.Status(fiber.StatusNotFound).JSON(&baseOutput{
 			Status: "Not Found",
@@ -113,7 +112,7 @@ func DeleteActivity(c *fiber.Ctx) error {
 }
 
 func UpdateActivity(c *fiber.Ctx) error {
-	activity, id := findOneActivity(c)
+	activity, id := findOneActivity(c.Params("id"))
 	if activity.ID == 0 {
 		return c.Status(fiber.StatusNotFound).JSON(&baseOutput{
 			Status: "Not Found",
