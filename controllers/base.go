@@ -13,3 +13,6 @@ var activityChanged bool = true
 
 var todoItemsCache []models.Todo = []models.Todo{}
 var todoItemChanged bool = true
+
+var todoItemsByActivityCache []models.Todo = []models.Todo{}
+var lastIDTIACache string = "0"

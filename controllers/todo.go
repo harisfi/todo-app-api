@@ -45,20 +45,30 @@ func fetchAllTodo() {
 	database.GetDB().Find(&todoItemsCache)
 }
 
+func getTodoByActivity(id string) []models.Todo {
+	if lastIDTIACache == "0" || lastIDTIACache != id {
+		iid, _ := strconv.Atoi(id)
+
+		lastIDTIACache = id
+		todoItemsByActivityCache = nil
+		for _, t := range todoItemsCache {
+			if t.ActivityGroupId == uint(iid) {
+				todoItemsByActivityCache = append(todoItemsByActivityCache, t)
+			}
+		}
+	}
+	return todoItemsByActivityCache
+}
+
 func GetAllTodo(c *fiber.Ctx) error {
 	if todoItemChanged {
 		fetchAllTodo()
 		todoItemChanged = false
 	}
 
-	todoItems := []models.Todo{}
+	var todoItems []models.Todo
 	if activityGroupId := c.Query("activity_group_id"); activityGroupId != "" {
-		activityGroupIdx, _ := strconv.Atoi(string(activityGroupId))
-		for _, t := range todoItemsCache {
-			if int(t.ActivityGroupId) == activityGroupIdx {
-				todoItems = append(todoItems, t)
-			}
-		}
+		todoItems = getTodoByActivity(activityGroupId)
 	} else {
 		todoItems = todoItemsCache
 	}
@@ -106,8 +116,7 @@ func CreateTodo(c *fiber.Ctx) error {
 		})
 	}
 
-	a := models.Activity{}
-	database.GetDB().Find(&a, activityGroupId)
+	a, _ := findOneActivity(fmt.Sprint(activityGroupId))
 	if a.ID == 0 {
 		return c.Status(fiber.StatusNotFound).JSON(&baseOutput{
 			Status: "Not Found",
